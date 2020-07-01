@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>今天你存款了吗？</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/vant@2.8/lib/index.css"
+    />
+  </head>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vant@2.8/lib/vant.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vant/touch-emulator"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@0.19.2/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/uuid@latest/dist/umd/uuidv4.min.js"></script>
+  <style>
+    pre {
+      outline: 1px solid #ccc;
+      padding: 5px;
+      margin: 5px;
+    }
+    .string {
+      color: green;
+    }
+    .number {
+      color: darkorange;
+    }
+    .boolean {
+      color: blue;
+    }
+    .null {
+      color: magenta;
+    }
+    .key {
+      color: red;
+    }
+  </style>
+  <body>
+    <div id="app">
+      <van-form ref="pageForm" :scroll-to-error="true">
+        <van-field
+          v-model="attr_1"
+          name="年龄"
+          label="年龄"
+          placeholder="请输入年龄"
+          :rules="[{ required: true, message: '年龄不能为空' }]"
+        ></van-field>
+        <van-field
+          readonly
+          clickable
+          name="职业"
+          :value="attr_2Str"
+          label="职业"
+          placeholder="请选择职业"
+          @click="showAttr2 = true"
+          :rules="[{ required: true, message: '职业不能为空' }]"
+        ></van-field>
+        <van-field
+          readonly
+          clickable
+          name="婚姻情况"
+          :value="attr_3Str"
+          label="婚姻情况"
+          placeholder="请选择婚姻情况"
+          @click="showAttr3 = true"
+          :rules="[{ required: true, message: '婚姻情况不能为空' }]"
+        ></van-field>
+        <van-field
+          readonly
+          clickable
+          name="教育情况"
+          :value="attr_4Str"
+          label="教育情况"
+          placeholder="请选择教育情况"
+          @click="showAttr4 = true"
+          :rules="[{ required: true, message: '教育情况不能为空' }]"
+        ></van-field>
+        <van-field
+          name="是否有房产"
+          label="是否有房产"
+          :rules="[{ required: true, message: '房产情况不能为空' }]"
+        >
+          <template #input>
+            <van-radio-group v-model="attr_5" direction="horizontal">
+              <van-radio name="yes">是</van-radio>
+              <van-radio name="no">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+        <van-field
+          name="是否有贷款"
+          label="是否有贷款"
+          :rules="[{ required: true, message: '贷款情况不能为空' }]"
+        >
+          <template #input>
+            <van-radio-group v-model="attr_6" direction="horizontal">
+              <van-radio name="yes">是</van-radio>
+              <van-radio name="no">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+        <van-field
+          name="是否有存款"
+          label="是否有存款"
+          :rules="[{ required: true, message: '存款情况不能为空' }]"
+        >
+          <template #input>
+            <van-radio-group v-model="attr_7" direction="horizontal">
+              <van-radio name="yes">是</van-radio>
+              <van-radio name="no">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+        <van-row type="flex" justify="center">
+          <van-col>
+            <van-button
+              :loading="isLoading"
+              type="info"
+              size="small"
+              :disabled="isLoading"
+              text="提交"
+              @click="submit"
+              loading-text="加载中..."
+            />
+          </van-col>
+        </van-row>
+      </van-form>
+      <div v-show="isShowResult">
+        <van-divider
+          :style="{ color: '#1989fa', borderColor: '#1989fa', padding: '0 16px' }"
+        >
+          结果
+        </van-divider>
+        <pre v-html="result"></pre>
+      </div>
+
+      <van-popup v-model="showAttr2" position="bottom">
+        <van-picker
+          show-toolbar
+          title="职业"
+          :columns="attr_2List"
+          value-key="name"
+          @confirm="onAttr2"
+          @cancel="showAttr2 = false"
+        ></van-picker>
+      </van-popup>
+      <van-popup v-model="showAttr3" position="bottom">
+        <van-picker
+          show-toolbar
+          title="婚姻情况"
+          :columns="attr_3List"
+          value-key="name"
+          @confirm="onAttr3"
+          @cancel="showAttr3 = false"
+        ></van-picker>
+      </van-popup>
+      <van-popup v-model="showAttr4" position="bottom">
+        <van-picker
+          show-toolbar
+          title="教育情况"
+          :columns="attr_4List"
+          value-key="name"
+          @confirm="onAttr4"
+          @cancel="showAttr4 = false"
+        ></van-picker>
+      </van-popup>
+    </div>
+    <script>
+      Vue.use(vant.Lazyload);
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            attr_1: "", // 年龄
+            attr_2: "", // 职业
+            attr_3: "", // 婚姻情况
+            attr_4: "", // 教育情况
+            attr_2Str: "", // 职业
+            attr_3Str: "", // 婚姻情况
+            attr_4Str: "", // 教育情况
+            attr_5: "", // 房产情况
+            attr_6: "", // 贷款情况
+            attr_7: "", // 存款情况
+            attr_2List: [
+              // 职业列表
+              {
+                name: "行政",
+                value: "admin",
+              },
+              {
+                name: "蓝领",
+                value: "blue-collar",
+              },
+              {
+                name: "老板",
+                value: "entrepreneur",
+              },
+              {
+                name: "保姆",
+                value: "housemaid",
+              },
+              {
+                name: "管理",
+                value: "management",
+              },
+              {
+                name: "退休",
+                value: "retired",
+              },
+              {
+                name: "自由职业",
+                value: "self-employed",
+              },
+              {
+                name: "公共事业",
+                value: "services",
+              },
+              {
+                name: "学生",
+                value: "student",
+              },
+              {
+                name: "技术员",
+                value: "technician",
+              },
+              {
+                name: "失业",
+                value: "unemployed",
+              },
+              {
+                name: "保密",
+                value: "unknown",
+              },
+            ],
+            attr_3List: [
+              // 婚姻状况列表
+              {
+                name: "已婚",
+                value: "married",
+              },
+              {
+                name: "离异",
+                value: "divorced",
+              },
+              {
+                name: "单身",
+                value: "single",
+              },
+            ],
+            attr_4List: [
+              // 教育程度列表
+              {
+                name: "小学及以下",
+                value: "primary",
+              },
+              {
+                name: "中学",
+                value: "secondary",
+              },
+              {
+                name: "大学及以上",
+                value: "tertiary",
+              },
+              {
+                name: "保密",
+                value: "unknown",
+              },
+            ],
+            // 表单交互
+            showAttr2: false, // 职业选择
+            showAttr3: false, // 婚姻状况选择
+            showAttr4: false, // 教育程度选择
+            isLoading: false,
+            isShowResult: false,
+            result: "",
+          };
+        },
+        methods: {
+          onAttr2(item) {
+            this.attr_2 = item.value;
+            this.attr_2Str = item.name;
+            this.showAttr2 = false;
+          },
+          onAttr3(item) {
+            this.attr_3 = item.value;
+            this.attr_3Str = item.name;
+            this.showAttr3 = false;
+          },
+          onAttr4(item) {
+            this.attr_4 = item.value;
+            this.attr_4Str = item.name;
+            this.showAttr4 = false;
+          },
+          syntaxHighlight: (json) => {
+            if (typeof json != "string") {
+              json = JSON.stringify(json, undefined, 2);
+            }
+            json = json
+              .replace(/&/g, "&")
+              .replace(/</g, "<")
+              .replace(/>/g, ">");
+            return json.replace(
+              /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+              function (match) {
+                var cls = "number";
+                if (/^"/.test(match)) {
+                  if (/:$/.test(match)) {
+                    cls = "key";
+                  } else {
+                    cls = "string";
+                  }
+                } else if (/true|false/.test(match)) {
+                  cls = "boolean";
+                } else if (/null/.test(match)) {
+                  cls = "null";
+                }
+                return '<span class="' + cls + '">' + match + "</span>";
+              }
+            );
+          },
+          submit() {
+            const _this = this;
+            let predictioncol = '';
+            this.$refs.pageForm
+              .validate()
+              .then(() => {
+                console.log(this);
+                _this.isLoading = true;
+                _this.isShowResult = false;
+                const jsonData = {
+                  meta: {
+                    uuid: uuidv4(),
+                  },
+                  data: {
+                    count: 1,
+                    req_data: [
+                      {
+                        attr_1: this.attr_1,
+                        attr_2: this.attr_2,
+                        attr_3: this.attr_3,
+                        attr_4: this.attr_4,
+                        attr_5: this.attr_5,
+                        attr_6: this.attr_6,
+                        attr_7: this.attr_7,
+                      },
+                    ],
+                  },
+                };
+                axios({
+                  method: "post",
+                  url: "./submit",
+                  data: jsonData,
+                })
+                  .then(function (response) {
+                    if (
+                      response.data &&
+                      response.data.result &&
+                      response.data.result.resp_data[0] &&
+                      response.data.result.resp_data[0].predictioncol
+                    ) {
+                      console.log(response.data.result.resp_data[0].predictioncol)
+                      predictioncol = response.data.result.resp_data[0].predictioncol
+                      predictioncol = predictioncol === 'no'?'<p>预测您近期不会去存款</p>':'<p>发财了，赶紧去存钱吧！</p>'
+                    }
+                    _this.result = predictioncol + _this.syntaxHighlight(response.data);
+                    _this.isLoading = false;
+                    _this.isShowResult = true;
+                  })
+                  .catch(function (error) {
+                    console.log(error);
+                    vant.Toast.fail("预测失败");
+                    _this.isLoading = false;
+                    _this.isShowResult = true;
+                  });
+              })
+              .catch((e) => {
+                _this.$refs.pageForm.scrollToField(e[0].name);
+              });
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
